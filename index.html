@@ -1,0 +1,395 @@
+<html>
+<head>
+	<title>Shopping List</title>
+	<meta name="title" content="Shopping List" />
+	<meta name="description"  content="A free online local-storage shopping list." />
+	<meta property="og:image" content="" />
+	<meta name="twitter:image:src" content="" />
+	<link rel="canonical" href="" />
+	<link rel="author" href="https://github.com/EyeOfMidas" />
+	<meta property="author" content="Justin Gilman" />
+	<meta property="article:author" content="https://github.com/EyeOfMidas" />
+	
+	<meta name="robots" content="index, follow" />
+	<META name="viewport" content="width=device-width, initial-scale=1.0">
+	<style type="text/css">
+	html,body {
+		margin: 0px;
+		padding: 0px;
+		font-family: 'Roboto', sans-serif;
+	}
+
+	.contents {
+		margin: 0;
+		min-height: 100%;
+		min-width: 100%;
+
+		box-sizing: border-box;
+		padding: 5px;
+		padding-bottom: 20px;
+	}
+
+	.title {
+		display: inline;
+	}
+
+	.list-group {
+		margin: 10px;
+	}
+
+	.record {
+		min-height: 20px;
+	}
+
+	.record-display {
+		padding-right: 5px;
+		white-space: nowrap;
+		overflow: hidden;
+		width: calc(100% - 60px);
+		display: inline-block;
+	}
+
+	.record-text {
+		margin-top: 5px;
+		width: calc(100% - 50px);
+	}
+
+	.edit-button {
+	}
+
+	.delete-button {
+	}
+
+	.control-button {
+		margin-left: 5px;
+	}
+
+	.clear {
+		clear: both;
+	}
+
+	.strikeout {
+		text-decoration: line-through;
+	}
+
+</style>
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+</head>
+<body>
+	<div class="contents">
+		<div>
+			<h1 class="title"></h1>
+		</div>
+		<div>
+			<div class="list-group" data-section="wholefoods" data-section-display="Whole Foods" data-add="true"></div>
+			<div class="list-group" data-section="target" data-section-display="Target" data-add="true"></div>
+			<div class="list-group" data-section="publix" data-section-display="Publix" data-add="true"></div>
+		</div>
+		<br class="clear"/>
+		 <!--<button class="control-button" id="Add List">Add List</button>--> <button class="control-button" id="clear-completed">Clear Completed Items</button> <button class="control-button" id="clear-data">Delete</button>
+		 <div>
+		 	<div class="list-group" data-section="purchased" data-section-display="Purchased"></div>
+		 </div>
+	</div>
+</body>
+<script type="text/javascript">
+	document.addEventListener("DOMContentLoaded", function() {
+		loadStoredContent();
+
+		var migrateButton = document.getElementById("clear-completed");
+		migrateButton.addEventListener("click", clearCompletedButton_click);
+
+		var clearButton = document.getElementById("clear-data");
+		clearButton.addEventListener("click", clearDataButton_click);	
+	});
+
+	function addItem(container, recordToInput) {
+		var section = container.getAttribute("data-section");
+		var sectionData = JSON.parse(localStorage.getItem(section));
+
+		var recordId = sectionData.length;
+		var recordData = {"text" : recordToInput, "strike": false};
+
+		sectionData.push(recordData);
+		localStorage.setItem(section, JSON.stringify(sectionData));
+
+		loadSection(container);
+	}
+
+	function addButton_click(event) {
+		var container = this.parentElement.parentElement;
+		var inputField = this.parentElement.getElementsByClassName("record-text")[0];
+		var recordToInput = inputField.value;
+
+		addItem(container, recordToInput);
+	}
+
+	function addInput_enter(event) {
+		if(event.keyCode == 13) {
+			var container = this.parentElement.parentElement;
+			var inputField = this;
+			var recordToInput = inputField.value;
+
+			addItem(container, recordToInput);
+		}
+	}
+
+	function clearCompletedButton_click(event) {
+		var response = confirm("Are you sure you want to move the marked out items to purchased?");
+		if(response) {
+			//var purchased = JSON.parse(localStorage.getItem('purchased'));
+			var purchased = [];
+
+			purchased = getMarkedOutItemsForPurchased('wholefoods', purchased);
+			purchased = getMarkedOutItemsForPurchased('target', purchased);
+			purchased = getMarkedOutItemsForPurchased('publix', purchased);
+
+			localStorage.setItem('purchased', JSON.stringify(purchased));
+			location.reload();
+		}
+	}
+
+	function getMarkedOutItemsForPurchased(source, purchased) {
+		var sourceData = JSON.parse(localStorage.getItem(source));
+
+			var newSourceData = [];
+			for(var i = 0, item; item = sourceData[i]; i++) {
+				if(item.strike) {
+					item.original = source;
+					purchased.push(item);
+				} else {
+					newSourceData.push(item);
+				}
+			}
+			localStorage.setItem(source, JSON.stringify(newSourceData));
+			return purchased;
+	}
+
+	function clearDataButton_click(event) {
+		var response = confirm("Are you sure you want to delete all items in all lists?");
+		if(response) {
+			localStorage.clear();
+			location.reload();
+		}
+	}
+
+	function saveButton_click(event) {
+		var record = this.parentElement;
+		var container = record.parentElement;
+
+		var inputField = record.getElementsByClassName("record-edit")[0];
+		var recordToInput = inputField.value;
+
+		deleteItem(container, record);
+		addItem(container, recordToInput);
+	}
+
+	function saveInput_enter(event) {
+		if(event.keyCode == 13) {
+			var record = this.parentElement;
+			var container = record.parentElement;
+
+			var inputField = this;
+			var recordToInput = inputField.value;
+
+			deleteItem(container, record);
+			addItem(container, recordToInput);
+		}
+	}
+
+	function cancelButton_click(event) {
+		var recordElement = this.parentElement;
+		var container = recordElement.parentElement;
+		loadSection(container);
+	}
+
+	function editButton_click(event) {
+
+		var recordElement = this.parentElement;
+		var container = recordElement.parentElement;
+		var recordId = recordElement.getAttribute("data-record-id");
+
+		var text = recordElement.getElementsByTagName('span')[0].innerHTML;
+
+		displayEditRecord(container, text, recordId);
+
+		container.removeChild(recordElement);
+	}
+
+	function deleteItem(container, record) {
+		var recordId = record.getAttribute("data-record-id");
+		var section = container.getAttribute("data-section");
+
+		var sectionStorage = JSON.parse(localStorage.getItem(section));
+		var newSectionStorage = [];
+		for(var i = 0; i < sectionStorage.length; i++) {
+			if(i != recordId) {
+				newSectionStorage.push(sectionStorage[i]);
+			}
+		}
+
+		localStorage.setItem(section, JSON.stringify(newSectionStorage));
+
+		container.removeChild(record);
+	}
+
+	function deleteButton_click(event) {
+		var record = this.parentElement;
+		var container = record.parentElement;
+		var response = confirm("Are you sure you want to delete \"" + record.getElementsByTagName('span')[0].innerHTML + "\"?");
+		if(response) {
+			deleteItem(container, record);
+			loadSection(container);
+		}
+	}
+
+	function toggleStrike_click(event) {
+		var record = this.parentElement;
+		var recordId = record.getAttribute("data-record-id");
+		var container = record.parentElement;
+		toggleStrike(container, recordId);
+	}
+
+	function toggleStrike(container, recordId) {
+		var section = container.getAttribute("data-section");
+		var sectionData = JSON.parse(localStorage.getItem(section));
+
+		sectionData[recordId].strike = !sectionData[recordId].strike;
+		localStorage.setItem(section, JSON.stringify(sectionData));
+
+		loadSection(container);
+	}
+
+
+	function displayEditRecord(container, contents, id) {
+		var recordContainer = document.createElement("div");
+
+		//var inputField = document.createElement("textarea");
+		//inputField.innerHTML = contents;
+		var inputField = document.createElement("input");
+		inputField.type = "text";
+		inputField.value = contents;
+		
+		inputField.className = "record-edit";
+		inputField.addEventListener("keydown", saveInput_enter);
+
+		var saveButton = document.createElement("button");
+		saveButton.innerHTML = "Save";
+		saveButton.addEventListener("click", saveButton_click);
+		
+		recordContainer.className = "record-edit";
+		recordContainer.setAttribute("data-record-id", id);
+
+		var cancelButton = document.createElement("button");
+		cancelButton.innerHTML = "Cancel";
+		cancelButton.addEventListener("click", cancelButton_click);
+
+		recordContainer.appendChild(inputField);
+		recordContainer.appendChild(saveButton);
+		recordContainer.appendChild(cancelButton);
+		container.appendChild(recordContainer);
+
+		inputField.focus();
+		inputField.setSelectionRange(0, inputField.value.length);
+	}
+
+	function displayRecordInContainer(container, section, record, id) {
+		var recordContainer = document.createElement("div");
+		recordContainer.className = "record";
+		recordContainer.setAttribute("data-record-id", id);
+
+		var textContainer = document.createElement("span");
+		textContainer.innerHTML = record.text;
+		textContainer.className = "record-display";
+		if(record.strike) {
+			textContainer.className += " strikeout";
+		}
+		textContainer.addEventListener("click", toggleStrike_click);
+		
+		
+
+		var editButton = document.createElement("button");
+		editButton.innerHTML = "...";
+		editButton.className = "edit-button";
+		editButton.addEventListener("click", editButton_click);
+
+		var deleteButton = document.createElement("button");
+		deleteButton.innerHTML = "X";
+		deleteButton.className = "delete-button";
+		deleteButton.addEventListener("click", deleteButton_click);
+
+		recordContainer.appendChild(textContainer);
+		recordContainer.appendChild(editButton);
+		recordContainer.appendChild(deleteButton);
+		container.appendChild(recordContainer);
+		
+	}
+
+	function loadStoredContent() {
+		var boxes = document.getElementsByClassName("list-group");
+		for(var i = 0, box; box = boxes[i]; i++) {
+			loadSection(box);
+		}
+
+		var titleString = localStorage.getItem("title");
+		if(titleString == null) {
+			titleString = "List for " + new Date().toLocaleDateString();	
+			localStorage.setItem("title", titleString);
+		}
+		var title = document.getElementsByClassName("title")[0];
+		title.innerHTML = titleString;
+		
+	}
+
+	function loadSection(container) {
+		container.innerHTML = "";
+		addSectionLabel(container);
+		var section = container.getAttribute("data-section");
+		var sectionStorage = localStorage.getItem(section);
+		if(sectionStorage == null) {
+			localStorage.setItem(section, JSON.stringify([]));
+		} else {
+			var sectionData = JSON.parse(sectionStorage);
+			for(var i = 0, record; record = sectionData[i]; i++) {
+				displayRecordInContainer(container, section, record, i);
+			}
+		}
+		addSectionInput(container);
+	}
+
+	function addSectionInput(container) {
+		var canAdd = container.getAttribute("data-add");
+		if(!canAdd) {
+			return;
+		}
+		var addRecordContainer = document.createElement("div");
+		addRecordContainer.className = "add-record";
+
+		//var inputField = document.createElement("textarea");
+
+		var inputField = document.createElement("input");
+		inputField.type = "text";
+
+		inputField.className = "record-text";
+		inputField.addEventListener("keydown", addInput_enter);
+
+		var addButton = document.createElement("button");
+		addButton.innerHTML = "+";
+		addButton.className = "add";
+		addButton.addEventListener("click", addButton_click);
+
+		addRecordContainer.appendChild(inputField);
+		addRecordContainer.appendChild(addButton);
+		container.appendChild(addRecordContainer);
+
+		inputField.focus();
+	}
+
+	function addSectionLabel(container) {
+		var sectionDisplay = container.getAttribute("data-section-display");
+		var sectionHeader = document.createElement("h2");
+		sectionHeader.innerHTML = sectionDisplay;
+		container.appendChild(sectionHeader);
+	}
+</script>
+</html>
