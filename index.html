@@ -103,15 +103,30 @@
 		clearButton.addEventListener("click", clearDataButton_click);	
 	});
 
+	function readData(key) {
+		try {
+			return JSON.parse(localStorage.getItem(key));
+		} catch(e) {}
+		return localStorage.getItem(key);
+	}
+
+	function writeData(key, data) {
+		localStorage.setItem(key, JSON.stringify(data));
+	}
+
+	function clearData() {
+		localStorage.clear();
+	}
+
 	function addItem(container, recordToInput) {
 		var section = container.getAttribute("data-section");
-		var sectionData = JSON.parse(localStorage.getItem(section));
+		var sectionData = readData(section);
 
 		var recordId = sectionData.length;
-		var recordData = {"text" : recordToInput, "strike": false};
+		var recordData = {"text" : recordToInput, "strike": false, "original": section};
 
 		sectionData.push(recordData);
-		localStorage.setItem(section, JSON.stringify(sectionData));
+		writeData(section,sectionData);
 
 		loadSection(container);
 	}
@@ -137,38 +152,37 @@
 	function clearCompletedButton_click(event) {
 		var response = confirm("Are you sure you want to move the marked out items to purchased?");
 		if(response) {
-			//var purchased = JSON.parse(localStorage.getItem('purchased'));
+			//var purchased = readData('purchased');
 			var purchased = [];
 
 			purchased = getMarkedOutItemsForPurchased('wholefoods', purchased);
 			purchased = getMarkedOutItemsForPurchased('target', purchased);
 			purchased = getMarkedOutItemsForPurchased('publix', purchased);
 
-			localStorage.setItem('purchased', JSON.stringify(purchased));
+			writeData('purchased', purchased);
 			location.reload();
 		}
 	}
 
 	function getMarkedOutItemsForPurchased(source, purchased) {
-		var sourceData = JSON.parse(localStorage.getItem(source));
+		var sourceData = readData(source);
 
 			var newSourceData = [];
 			for(var i = 0, item; item = sourceData[i]; i++) {
 				if(item.strike) {
-					item.original = source;
 					purchased.push(item);
 				} else {
 					newSourceData.push(item);
 				}
 			}
-			localStorage.setItem(source, JSON.stringify(newSourceData));
+			writeData(source, newSourceData);
 			return purchased;
 	}
 
 	function clearDataButton_click(event) {
 		var response = confirm("Are you sure you want to delete all items in all lists?");
 		if(response) {
-			localStorage.clear();
+			clearData();
 			location.reload();
 		}
 	}
@@ -220,7 +234,7 @@
 		var recordId = record.getAttribute("data-record-id");
 		var section = container.getAttribute("data-section");
 
-		var sectionStorage = JSON.parse(localStorage.getItem(section));
+		var sectionStorage = readData(section);
 		var newSectionStorage = [];
 		for(var i = 0; i < sectionStorage.length; i++) {
 			if(i != recordId) {
@@ -228,7 +242,7 @@
 			}
 		}
 
-		localStorage.setItem(section, JSON.stringify(newSectionStorage));
+		writeData(section, newSectionStorage);
 
 		container.removeChild(record);
 	}
@@ -252,10 +266,10 @@
 
 	function toggleStrike(container, recordId) {
 		var section = container.getAttribute("data-section");
-		var sectionData = JSON.parse(localStorage.getItem(section));
+		var sectionData = readData(section);
 
 		sectionData[recordId].strike = !sectionData[recordId].strike;
-		localStorage.setItem(section, JSON.stringify(sectionData));
+		writeData(section, sectionData);
 
 		loadSection(container);
 	}
@@ -331,10 +345,10 @@
 			loadSection(box);
 		}
 
-		var titleString = localStorage.getItem("title");
+		var titleString = readData("title");
 		if(titleString == null) {
 			titleString = "List for " + new Date().toLocaleDateString();	
-			localStorage.setItem("title", titleString);
+			writeData("title", titleString);
 		}
 		var title = document.getElementsByClassName("title")[0];
 		title.innerHTML = titleString;
@@ -345,11 +359,11 @@
 		container.innerHTML = "";
 		addSectionLabel(container);
 		var section = container.getAttribute("data-section");
-		var sectionStorage = localStorage.getItem(section);
+		var sectionStorage = readData(section);
 		if(sectionStorage == null) {
-			localStorage.setItem(section, JSON.stringify([]));
+			writeData(section, []);
 		} else {
-			var sectionData = JSON.parse(sectionStorage);
+			var sectionData = sectionStorage;
 			for(var i = 0, record; record = sectionData[i]; i++) {
 				displayRecordInContainer(container, section, record, i);
 			}
