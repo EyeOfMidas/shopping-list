@@ -80,20 +80,17 @@
 		<div>
 			<h1 class="title"></h1>
 		</div>
-		<div>
-			<div class="list-group" data-section="wholefoods" data-section-display="Whole Foods" data-add="true"></div>
-			<div class="list-group" data-section="target" data-section-display="Target" data-add="true"></div>
-			<div class="list-group" data-section="publix" data-section-display="Publix" data-add="true"></div>
-		</div>
+		<div class="list-collection"></div>
 		<br class="clear"/>
 		 <!--<button class="control-button" id="Add List">Add List</button>--> <button class="control-button" id="clear-completed">Clear Completed Items</button> <button class="control-button" id="clear-data">Delete</button>
-		 <div>
+		 <div class="read-only-lists">
 		 	<div class="list-group" data-section="purchased" data-section-display="Purchased"></div>
 		 </div>
 	</div>
 </body>
 <script type="text/javascript">
 	document.addEventListener("DOMContentLoaded", function() {
+		initDatasource();
 		loadStoredContent();
 
 		var migrateButton = document.getElementById("clear-completed");
@@ -102,6 +99,20 @@
 		var clearButton = document.getElementById("clear-data");
 		clearButton.addEventListener("click", clearDataButton_click);	
 	});
+
+	function initDatasource() {
+	}
+
+	function addList(key, displayName, canAddData) {
+		var listCollection = document.getElementsByClassName('list-collection')[0];
+
+		var list = document.createElement('div');
+		list.className = "list-group";
+		list.setAttribute('data-section', key);
+		list.setAttribute('data-section-display', displayName);
+		list.setAttribute('data-add', canAddData);
+		listCollection.appendChild(list);
+	}
 
 	function readData(key) {
 		try {
@@ -340,6 +351,19 @@
 	}
 
 	function loadStoredContent() {
+		var lists = readData('lists');
+		if(lists == null) {
+			var listBuilder = [];
+			listBuilder.push({"section": 'wholefoods', "display": 'Whole Foods', "add": true});
+			listBuilder.push({"section": 'target', "display": 'Target', "add": true});
+			listBuilder.push({"section": 'publix', "display": 'Publix', "add": true});
+			writeData('lists', listBuilder);
+			lists = listBuilder;
+		}
+		for(var i = 0, list; list = lists[i]; i++) {
+			addList(list.section, list.display, list.add);
+		}
+		
 		var boxes = document.getElementsByClassName("list-group");
 		for(var i = 0, box; box = boxes[i]; i++) {
 			loadSection(box);
